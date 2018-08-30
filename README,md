@@ -1,0 +1,8 @@
+# Vita Magna
+View chaotic attractors
+## Depends
+* SDL2
+* Glew
+## Building/Running
+* make
+* ./VitaMagna
