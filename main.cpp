@@ -22,6 +22,9 @@ float map(float value, float min1, float max1, float min2, float max2);
 void render_dream(float &x, float &y, float &a, float &b, float &c, float &d, bool &smooth_a, bool &smooth_b, bool &smooth_c, bool &smooth_d);
 void render_dream_var(float &x, float &y, float &a, float &b, float &c, float &d, bool &smooth_a, bool &smooth_b, bool &smooth_c, bool &smooth_d);
 void render_ginger(float &x, float &y, const float &b);
+void render_gumowisk_mira(float x, float y, float &a, float &b);
+void render_henon_attractor();
+void render_hopalong_attractor(const float a, const float b, const float c);
 
 int main(int argc, char *argv[])
 {
@@ -98,9 +101,6 @@ int main(int argc, char *argv[])
             delta--;
         }
 
-        x = 0.1;
-        y = 0.1;
-
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
         glClearColor(0.0, 0.0, 0.0, 1.0);
 
@@ -116,6 +116,12 @@ int main(int argc, char *argv[])
             render_dream_var(x, y, a, b, c, d, smooth_a, smooth_b, smooth_c, smooth_d);
         else if(selection == 2)
             render_ginger(x, y, b);
+        else if(selection == 3)
+            render_gumowisk_mira(x, y, a, b);
+        else if(selection == 4)
+            render_henon_attractor();
+        else if(selection == 5)
+            render_hopalong_attractor(a, b, c);
 
         glEnd();
 
@@ -124,7 +130,7 @@ int main(int argc, char *argv[])
         ImGui::NewFrame();
 
         ImGui::Begin("Vita Manga");
-        ImGui::SliderInt("Attractor #", &selection, 0, 2);
+        ImGui::SliderInt("Attractor #", &selection, 0, 5);
         ImGui::DragInt("Restless Iterations", &restless_iterations, 1000, 10000, 10000000);
         if(selection == 0 || selection == 1)
         {
@@ -161,6 +167,17 @@ int main(int argc, char *argv[])
         {
             float diff = 0.01;
             ImGui::DragFloat("b", &b, 0.001, -3.0, 3.0);
+        }
+        else if(selection == 3)
+        {
+            ImGui::DragFloat("a", &a, 0.001, -0.999, 0.999);
+            ImGui::DragFloat("b", &b, 0.0001, 0.9, 1.1);
+        }
+        else if(selection == 5)
+        {
+            ImGui::DragFloat("a", &a, 0.1, 0, 10);
+            ImGui::DragFloat("b", &b, 0.1, 0, 10);
+            ImGui::DragFloat("c", &c, 0.1, 0, 10);
         }
         
         ImGui::End();
@@ -248,6 +265,53 @@ void render_ginger(float &x, float &y, const float &b)
         newy = x;
         x = newx;
         y = newy;
+        glVertex2f(x, y);
+    }
+}
+
+void render_gumowisk_mira(float x, float y, float &a, float &b)
+{
+    x = -6.4;
+    y = 2.7;
+    float t, w, xnew, ynew;
+    for(int i = 0;  i < restless_iterations; i++)
+    {
+        t = x;
+        xnew = b * y + w;
+        w = a * x + (1 - a) * 2 * x * x / (1 + x * x);
+        ynew = w - t;
+        x = xnew;
+        y = ynew;
+        glColor4f(map(x, 0, 1.0, 0, 1.0), map(y, 0, 1.0, 0, 1.0), map(w, 0, 1.0, 0, 1.0), 0.2);
+        glVertex2f(x, y);
+    }
+}
+
+void render_henon_attractor()
+{
+    float x = 1, y = 1, xnew, ynew;
+    for(int i = 0; i < restless_iterations; i++)
+    {
+        xnew = y + 1 - (1.4 * x * x);
+        ynew = 0.3 * x;
+        x = xnew;
+        y = ynew;
+        glColor4f(map(x, 0.0, 1.0, 0.0, 1.0), map(x, 0.0, 1.0, 0.0, 1.0),
+            map(x+y, 0.0, 1.0, 0.0, 1.0), 0.2);
+        glVertex2f(x, y);
+    }
+}
+
+void render_hopalong_attractor(const float a, const float b, const float c)
+{
+    float x = 0, y = 0, xnew, ynew;
+    for(int i = 0; i < restless_iterations; i++)
+    {
+        xnew = y - 1 - sqrt(abs(b * x - 1 - c)) * sign(x - 1);
+        ynew = a - x - 1;
+        x = xnew;
+        y = ynew;
+        glColor4f(map(i, 0, restless_iterations, 0.0, 1.0) * 0.2, 0.2, 0.4, 0.4);
         glVertex2f(x, y);
     }
 }
