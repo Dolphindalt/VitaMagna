@@ -1,24 +1,27 @@
 #include <GL/glew.h>
 #include <GL/glu.h>
 #include <SDL2/SDL.h>
+#define GLM_ENABLE_EXPERIMENTAL
 #include <glm/gtc/type_ptr.hpp>
 #include <imgui.h>
 #include <imgui_impl_sdl.h>
 #include <imgui_impl_opengl3.h>
 #include <glm/glm.hpp>
+#include <glm/gtx/transform.hpp>
 
 #define MAJOR_VERSION 3
 #define MINOR_VERSION 1
 
 using namespace glm;
 
-int running = 1;
-
-// King's Dream Fractal
-bool smooth_a = 0, smooth_b = 0, smooth_c = 0, smooth_d = 0;
+int running = 1, restless_iterations = 1000000;
+glm::vec3 camera_position = vec3(0.0, 0.0, 0.11);
 
 void input();
 float map(float value, float min1, float max1, float min2, float max2);
+void render_dream(float &x, float &y, float &a, float &b, float &c, float &d, bool &smooth_a, bool &smooth_b, bool &smooth_c, bool &smooth_d);
+void render_dream_var(float &x, float &y, float &a, float &b, float &c, float &d, bool &smooth_a, bool &smooth_b, bool &smooth_c, bool &smooth_d);
+void render_ginger(float &x, float &y, const float &b);
 
 int main(int argc, char *argv[])
 {
@@ -62,7 +65,6 @@ int main(int argc, char *argv[])
     ImGui_ImplOpenGL3_Init("#version 400");
     ImGui::StyleColorsClassic();
 
-    glColor4f(1.0f, 1.0f, 1.0f, 0.2f);
     glEnable(GL_BLEND);
     glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
     glEnable(GL_POINT_SMOOTH);
@@ -71,19 +73,16 @@ int main(int argc, char *argv[])
     glViewport(0, 0, resolution.w, resolution.h);
     glMatrixMode(GL_PROJECTION);
     glLoadIdentity();
-    glOrtho(-2.0, 2.0, -2.0, 2.0, -30, 30);
+    //glOrtho(-2.0, 2.0, -2.0, 2.0, -30, 300);
+    glFrustum(-2.0, 2.0, -2.0, 2.0, 0.1, 100);
     glMatrixMode(GL_MODELVIEW);
     glLoadIdentity();
 
-    float x = 0.1, y = 0.1;
-    float a = -0.96632, b = 2.879534, c = 0.7654321, d = 0.744788;
-    int settling_iterations = 100, restless_iterations = 1000000;
+    int selection = 0;
 
-    for(int i = 0; i < settling_iterations; i++)
-    {
-        x = sin(y * b) + c * sin(x * b);
-        y = sin(x * a) + d * sin(y * a);
-    }
+    float x = 0.1, y = 0.1;
+    float a = -0.9, b = 2.8, c = 0.7, d = 0.7;
+    bool smooth_a = 0, smooth_b = 0, smooth_c = 0, smooth_d = 0, slow_speed = 0;
 
     Uint64 now;
     Uint64 last_time = SDL_GetPerformanceCounter();
@@ -99,20 +98,24 @@ int main(int argc, char *argv[])
             delta--;
         }
 
+        x = 0.1;
+        y = 0.1;
+
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
         glClearColor(0.0, 0.0, 0.0, 1.0);
 
+        glMatrixMode(GL_MODELVIEW);
+        glLoadIdentity();
+        glLoadMatrixf(value_ptr(lookAt(camera_position, vec3(0.0), vec3(0.0, 1.0, 0.0))));
+
         glBegin(GL_POINTS);
-        
-        for(int i = 0; i < restless_iterations; i++)
-        {
-            x = sin(y * b) + c * sin(x * b);
-            y = sin(x * a) + d * sin(y * a);
-            float cx = map(x, 0.0, 1.0, 0.0, 1.0);
-            float cy = map(y, 0.0, 1.0, 0.0, 1.0);
-            glColor4f(cx, 0.5, cy, 0.2);
-            glVertex2f(x, y);
-        }
+
+        if(selection == 0)
+            render_dream(x, y, a, b, c, d, smooth_a, smooth_b, smooth_c, smooth_d);
+        else if(selection == 1)
+            render_dream_var(x, y, a, b, c, d, smooth_a, smooth_b, smooth_c, smooth_d);
+        else if(selection == 2)
+            render_ginger(x, y, b);
 
         glEnd();
 
@@ -121,39 +124,48 @@ int main(int argc, char *argv[])
         ImGui::NewFrame();
 
         ImGui::Begin("Vita Manga");
+        ImGui::SliderInt("Attractor #", &selection, 0, 2);
         ImGui::DragInt("Restless Iterations", &restless_iterations, 1000, 10000, 10000000);
-        ImGui::DragFloat("a", &a, 0.02, -3.0, 3.0);
-        ImGui::Checkbox("Smooth a", &smooth_a);
-        ImGui::DragFloat("b", &b, 0.02, -3.0, 3.0);
-        ImGui::Checkbox("Smooth b", &smooth_b);
-        ImGui::DragFloat("c", &c, 0.02, -0.5, 1.5);
-        ImGui::Checkbox("Smooth c", &smooth_c);
-        ImGui::DragFloat("d", &d, 0.02, -0.5, 1.5);
-        ImGui::Checkbox("Smooth d", &smooth_d);
+        if(selection == 0 || selection == 1)
+        {
+            ImGui::DragFloat("a", &a, 0.02, -3.0, 3.0);
+            ImGui::Checkbox("Smooth a", &smooth_a);
+            ImGui::DragFloat("b", &b, 0.02, -3.0, 3.0);
+            ImGui::Checkbox("Smooth b", &smooth_b);
+            ImGui::DragFloat("c", &c, 0.02, -0.5, 1.5);
+            ImGui::Checkbox("Smooth c", &smooth_c);
+            ImGui::DragFloat("d", &d, 0.02, -0.5, 1.5);
+            ImGui::Checkbox("Smooth d", &smooth_d);
+            if(smooth_a)
+                if(a < 3.0)
+                    a += 0.02;
+                else
+                    a = -3.0;
+            if(smooth_b)
+                    if(b < 3.0)
+                        b += 0.02;
+                    else
+                        b = -3.0;
+            if(smooth_c)
+                    if(c < 1.5)
+                        c += 0.02;
+                    else
+                        c = -1.5;
+            if(smooth_d)
+                    if(d < 1.5)
+                        d += 0.02;
+                    else
+                        d = -1.5;
+        }
+        else if(selection == 2)
+        {
+            float diff = 0.01;
+            ImGui::DragFloat("b", &b, 0.001, -3.0, 3.0);
+        }
+        
         ImGui::End();
 
         ImGui::Render();
-
-        if(smooth_a)
-            if(a < 3.0)
-                a += 0.02;
-            else
-                a = -3.0;
-        if(smooth_b)
-            if(b < 3.0)
-                b += 0.02;
-            else
-                b = -3.0;
-        if(smooth_c)
-            if(c < 1.5)
-                c += 0.02;
-            else
-                c = -1.5;
-        if(smooth_d)
-            if(d < 1.5)
-                d += 0.02;
-            else
-                d = -1.5;
 
         SDL_GL_MakeCurrent(window, glcon);
         ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
@@ -171,6 +183,7 @@ int main(int argc, char *argv[])
 
 void input()
 {
+    const float camera_speed = 0.01f;
     SDL_Event e;
     while(SDL_PollEvent(&e))
     {
@@ -182,10 +195,60 @@ void input()
                 switch(e.key.keysym.sym)
                 {
                     case SDLK_ESCAPE: running = 0;
+                    case SDLK_q: camera_position.z += camera_speed; break;
+                    case SDLK_e: camera_position.z -= camera_speed; break;
+                    case SDLK_w: camera_position.y += camera_speed; break;
+                    case SDLK_s: camera_position.y -= camera_speed; break;
+                    case SDLK_a: camera_position.x -= camera_speed; break;
+                    case SDLK_d: camera_position.x += camera_speed; break;
                     default: break;
                 }
             default: break;
         }
+    }
+}
+
+void render_dream(float &x, float &y, float &a, float &b, float &c, float &d, bool &smooth_a, bool &smooth_b, bool &smooth_c, bool &smooth_d)
+{ 
+    x = 0.1, y = 0.1;
+    for(int i = 0; i < restless_iterations; i++)
+    {
+        float oldx = x;
+        x = sin(y * b) + c * sin(x * b);
+        y = sin(oldx * a) + d * sin(y * a);
+        float cx = map(x, 0.0, 1.0, 0.0, 1.0);
+        float cy = map(y, 0.0, 1.0, 0.0, 1.0);
+        glColor4f(cx, 0.5, cy, 0.2);
+        glVertex2f(x, y);
+    }
+}
+
+void render_dream_var(float &x, float &y, float &a, float &b, float &c, float &d, bool &smooth_a, bool &smooth_b, bool &smooth_c, bool &smooth_d)
+{ 
+    x = 0.1, y = 0.1;
+    for(int i = 0; i < restless_iterations; i++)
+    {
+        x = sin(y * b) + c * sin(x * b);
+        y = sin(x * a) + d * sin(y * a);
+        float cx = map(x, 0.0, 1.0, 0.0, 1.0);
+        float cy = map(y, 0.0, 1.0, 0.0, 1.0);
+        glColor4f(cx, 0.5, cy, 0.2);
+        glVertex2f(x, y);
+    }
+}
+
+void render_ginger(float &x, float &y, const float &b)
+{
+    x = 0.1, y = 0.1;
+    float newx, newy;
+    glColor4f(0.7, 0.2, 0.8, 1.0);
+    for(int i = 0; i < restless_iterations; i++)
+    {
+        newx = 1 - y + b * abs(x);
+        newy = x;
+        x = newx;
+        y = newy;
+        glVertex2f(x, y);
     }
 }
 
