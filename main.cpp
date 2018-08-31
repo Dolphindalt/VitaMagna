@@ -18,11 +18,11 @@ int running = 1, restless_iterations = 1000000;
 glm::vec3 camera_position = vec3(0.0, 0.0, 0.11);
 
 void input();
-float map(float value, float min1, float max1, float min2, float max2);
-void render_dream(float &x, float &y, float &a, float &b, float &c, float &d, bool &smooth_a, bool &smooth_b, bool &smooth_c, bool &smooth_d);
-void render_dream_var(float &x, float &y, float &a, float &b, float &c, float &d, bool &smooth_a, bool &smooth_b, bool &smooth_c, bool &smooth_d);
-void render_ginger(float &x, float &y, const float &b);
-void render_gumowisk_mira(float x, float y, float &a, float &b);
+float map(const float value, const float min1, const float max1, const float min2, const float max2);
+void render_dream(const float &a, const float &b, const float &c, const float &d, const bool &smooth_a, const bool &smooth_b, const bool &smooth_c, const bool &smooth_d);
+void render_dream_var(const float &a, const float &b, const float &c, const float &d, const bool &smooth_a, const bool &smooth_b, const bool &smooth_c, const bool &smooth_d);
+void render_ginger(const float &b);
+void render_gumowisk_mira(const float &a, const float &b);
 void render_henon_attractor();
 void render_hopalong_attractor(const float a, const float b, const float c);
 
@@ -76,14 +76,11 @@ int main(int argc, char *argv[])
     glViewport(0, 0, resolution.w, resolution.h);
     glMatrixMode(GL_PROJECTION);
     glLoadIdentity();
-    //glOrtho(-2.0, 2.0, -2.0, 2.0, -30, 300);
     glFrustum(-2.0, 2.0, -2.0, 2.0, 0.1, 100);
     glMatrixMode(GL_MODELVIEW);
     glLoadIdentity();
 
     int selection = 0;
-
-    float x = 0.1, y = 0.1;
     float a = -0.9, b = 2.8, c = 0.7, d = 0.7;
     bool smooth_a = 0, smooth_b = 0, smooth_c = 0, smooth_d = 0, slow_speed = 0;
 
@@ -111,13 +108,13 @@ int main(int argc, char *argv[])
         glBegin(GL_POINTS);
 
         if(selection == 0)
-            render_dream(x, y, a, b, c, d, smooth_a, smooth_b, smooth_c, smooth_d);
+            render_dream(a, b, c, d, smooth_a, smooth_b, smooth_c, smooth_d);
         else if(selection == 1)
-            render_dream_var(x, y, a, b, c, d, smooth_a, smooth_b, smooth_c, smooth_d);
+            render_dream_var(a, b, c, d, smooth_a, smooth_b, smooth_c, smooth_d);
         else if(selection == 2)
-            render_ginger(x, y, b);
+            render_ginger(b);
         else if(selection == 3)
-            render_gumowisk_mira(x, y, a, b);
+            render_gumowisk_mira(a, b);
         else if(selection == 4)
             render_henon_attractor();
         else if(selection == 5)
@@ -225,9 +222,9 @@ void input()
     }
 }
 
-void render_dream(float &x, float &y, float &a, float &b, float &c, float &d, bool &smooth_a, bool &smooth_b, bool &smooth_c, bool &smooth_d)
+void render_dream(const float &a, const float &b, const float &c, const float &d, const bool &smooth_a, const bool &smooth_b, const bool &smooth_c, const bool &smooth_d)
 { 
-    x = 0.1, y = 0.1;
+    float x = 0.1, y = 0.1;
     for(int i = 0; i < restless_iterations; i++)
     {
         float oldx = x;
@@ -240,9 +237,9 @@ void render_dream(float &x, float &y, float &a, float &b, float &c, float &d, bo
     }
 }
 
-void render_dream_var(float &x, float &y, float &a, float &b, float &c, float &d, bool &smooth_a, bool &smooth_b, bool &smooth_c, bool &smooth_d)
+void render_dream_var(const float &a, const float &b, const float &c, const float &d, const bool &smooth_a, const bool &smooth_b, const bool &smooth_c, const bool &smooth_d)
 { 
-    x = 0.1, y = 0.1;
+    float x = 0.1, y = 0.1;
     for(int i = 0; i < restless_iterations; i++)
     {
         x = sin(y * b) + c * sin(x * b);
@@ -254,10 +251,9 @@ void render_dream_var(float &x, float &y, float &a, float &b, float &c, float &d
     }
 }
 
-void render_ginger(float &x, float &y, const float &b)
+void render_ginger(const float &b)
 {
-    x = 0.1, y = 0.1;
-    float newx, newy;
+    float x = 0.1, y = 0.1, newx, newy;
     glColor4f(0.7, 0.2, 0.8, 1.0);
     for(int i = 0; i < restless_iterations; i++)
     {
@@ -269,11 +265,9 @@ void render_ginger(float &x, float &y, const float &b)
     }
 }
 
-void render_gumowisk_mira(float x, float y, float &a, float &b)
+void render_gumowisk_mira(const float &a, const float &b)
 {
-    x = -6.4;
-    y = 2.7;
-    float t, w, xnew, ynew;
+    float x = -6.4, y = 2.7, t, w, xnew, ynew;
     for(int i = 0;  i < restless_iterations; i++)
     {
         t = x;
@@ -311,12 +305,12 @@ void render_hopalong_attractor(const float a, const float b, const float c)
         ynew = a - x - 1;
         x = xnew;
         y = ynew;
-        glColor4f(map(i, 0, restless_iterations, 0.0, 1.0) * 0.2, 0.2, 0.4, 0.4);
+        glColor4f(map(i, 0, 1.0, 0.0, 1.0) * 0.2, 0.2, 0.4, 0.4);
         glVertex2f(x, y);
     }
 }
 
-float map(float value, float min1, float max1, float min2, float max2)
+float map(const float value, const float min1, const float max1, const float min2, const float max2)
 {
     float percent = (value - min1) / (max1 - min1);
     return percent * (max2 - min2) + min2;
